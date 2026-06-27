@@ -1,0 +1,37 @@
+{
+  "name": "QRadar-0002 - Network Port Scan Detection",
+  "description": "Detects reconnaissance activity by identifying a single source IP communicating with an unusually high number of distinct destination ports within 60 seconds. This pattern is consistent with automated port scanners such as Nmap or Masscan.",
+  "type": "FLOW",
+  "enabled": true,
+  "severity": 5,
+  "credibility": 4,
+  "relevance": 4,
+  "category": "Reconnaissance",
+  "mitre": {
+    "tactic": "TA0043",
+    "tactic_name": "Reconnaissance",
+    "technique": "T1046",
+    "technique_name": "Network Service Discovery"
+  },
+  "detection": {
+    "log_source_type": "Network Flows (QFlow), Firewall Logs",
+    "event_name_filter": "TCP SYN, UDP Probe, ICMP Probe",
+    "aql": "SELECT sourceIP, destinationIP, COUNT(DISTINCT destinationPort) as unique_ports, COUNT(*) as total_connections FROM flows WHERE sourceIP IS NOT NULL AND destinationPort IS NOT NULL AND (protocolid = 6 OR protocolid = 17) GROUP BY sourceIP, destinationIP HAVING COUNT(DISTINCT destinationPort) >= 50 LAST 60 SECONDS",
+    "threshold": 50,
+    "time_window_seconds": 60,
+    "group_by": "sourceIP"
+  },
+  "response": {
+    "create_offense": true,
+    "offense_name": "Port Scan Detected from {sourceIP} — {unique_ports} ports scanned",
+    "offense_description": "A single source IP has probed more than 50 distinct destination ports within 60 seconds. This is indicative of automated network reconnaissance.",
+    "email_notification": false,
+    "syslog_output": true,
+    "offense_type": "Source IP"
+  },
+  "tags": ["port-scan", "reconnaissance", "nmap", "network-discovery", "pre-attack"],
+  "notes": "Inspired by SIGMA rule: net_scan_susp_port_scan. Threshold of 50 unique ports is conservative for most enterprise environments. Whitelist authorized vulnerability scanners and asset management tools.",
+  "version": "1.0",
+  "author": "Security Team",
+  "created": "2026-06-27"
+}
