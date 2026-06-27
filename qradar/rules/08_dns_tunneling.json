@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0008 - DNS Tunneling and Covert Channel Detection",
-  "description": "Detects DNS-based covert channels used by attackers to exfiltrate data or establish C2 communications. Identifies hosts generating abnormally high volumes of DNS requests to a single destination.",
+  "description": "Detects DNS-based covert channels by identifying hosts generating abnormally high volumes of DNS queries. Used by attackers to exfiltrate data or establish C2 communications through DNS.",
   "type": "EVENT",
   "enabled": true,
   "severity": 8,
@@ -16,22 +16,22 @@
   "detection": {
     "log_source_type": "DNS Server Logs, Network Flows (QFlow), Firewall Logs",
     "event_name_filter": "DNS Query, High-Volume DNS",
-    "aql": "SELECT sourceIP, destinationIP, COUNT(*) as query_count FROM events WHERE (destinationPort = 53 OR sourcePort = 53) AND LOGSOURCETYPENAME(devicetype) ILIKE '%dns%' GROUP BY sourceIP, destinationIP HAVING COUNT(*) >= 30 LAST 10 MINUTES",
+    "aql": "SELECT sourceIP, destinationIP, COUNT(*) as query_count FROM events WHERE destinationPort = 53 GROUP BY sourceIP, destinationIP HAVING COUNT(*) >= 30 LAST 10 MINUTES",
     "threshold_queries": 30,
     "time_window_seconds": 600,
     "group_by": "sourceIP, destinationIP"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "DNS Tunneling Detected from {sourceIP} — {query_count} queries",
-    "offense_description": "An internal host is generating anomalous DNS traffic indicative of tunneling. Very high query volume suggests data exfiltration or C2 over DNS.",
+    "offense_name": "DNS Tunneling Detected from {sourceIP}",
+    "offense_description": "A host is generating anomalous DNS traffic volume. High query rate suggests possible data exfiltration or C2 over DNS.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Source IP"
   },
   "tags": ["dns-tunneling", "covert-channel", "exfiltration", "c2", "dnscat"],
-  "notes": "Inspired by SIGMA rules: net_susp_dns_txt_query. Simplified for QRadar compatibility — removed LENGTH() and SUBDOMAIN_COUNT(). Consider DNS RPZ for automated blocking.",
-  "version": "1.1",
+  "notes": "Pure volume-based DNS detection. Uses only port 53 destination filter for maximum compatibility.",
+  "version": "1.2",
   "author": "Security Team",
   "created": "2026-06-27"
 }
