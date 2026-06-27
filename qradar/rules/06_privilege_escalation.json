@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0006 - Windows Privilege Escalation Detection",
-  "description": "Detects privilege escalation attempts on Windows systems by monitoring for suspicious use of built-in elevation tools, UAC bypass techniques, and unexpected additions to privileged groups.",
+  "description": "Detects privilege escalation attempts on Windows systems by monitoring for suspicious activities indicative of UAC bypass, group membership changes, and elevation tool usage.",
   "type": "EVENT",
   "enabled": true,
   "severity": 9,
@@ -14,9 +14,9 @@
     "technique_name": "Abuse Elevation Control Mechanism: Bypass User Account Control"
   },
   "detection": {
-    "log_source_type": "Windows Security Event Log, Windows System Event Log, Sysmon",
-    "event_name_filter": "Group membership change, Special logon, Explicit credentials",
-    "aql": "SELECT username, sourceIP, qid, CATEGORYNAME(category) as event_category, COUNT(*) as event_count FROM events WHERE LOGSOURCETYPENAME(devicetype) ILIKE '%windows%' AND (QIDDESCRIPTION(qid) ILIKE '%added to%' OR QIDDESCRIPTION(qid) ILIKE '%privilege%' OR QIDDESCRIPTION(qid) ILIKE '%administrator%' OR UTF8(payload) ILIKE '%whoami /priv%' OR UTF8(payload) ILIKE '%bypassuac%' OR UTF8(payload) ILIKE '%runas%' OR UTF8(payload) ILIKE '%net localgroup%') GROUP BY username, sourceIP, qid, event_category HAVING COUNT(*) >= 1 LAST 15 MINUTES",
+    "log_source_type": "Windows Security Event Log, Sysmon",
+    "event_name_filter": "Group membership change, Special logon, UAC bypass",
+    "aql": "SELECT sourceIP, username, COUNT(*) as event_count FROM events WHERE LOGSOURCETYPENAME(devicetype) ILIKE '%windows%' AND (UTF8(payload) ILIKE '%bypassuac%' OR UTF8(payload) ILIKE '%runas%' OR UTF8(payload) ILIKE '%whoami /priv%' OR UTF8(payload) ILIKE '%net localgroup administrators%' OR UTF8(payload) ILIKE '%added to%' OR UTF8(payload) ILIKE '%privilege%') GROUP BY sourceIP, username HAVING COUNT(*) >= 1 LAST 15 MINUTES",
     "threshold": 1,
     "time_window_seconds": 900,
     "group_by": "username, sourceIP"
@@ -24,14 +24,14 @@
   "response": {
     "create_offense": true,
     "offense_name": "Privilege Escalation Attempt by {username}",
-    "offense_description": "Suspicious privilege escalation activity detected. User may have been added to a privileged group or UAC bypass was attempted.",
+    "offense_description": "Suspicious privilege escalation activity detected. User may have attempted UAC bypass or been added to a privileged group.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Username"
   },
   "tags": ["privilege-escalation", "uac-bypass", "windows", "admin-group", "sysmon"],
-  "notes": "Inspired by SIGMA rules: win_susp_uac_bypass. Uses QIDDESCRIPTION instead of EventID for cross-version QRadar compatibility.",
-  "version": "1.1",
+  "notes": "Uses UTF8(payload) keyword matching for maximum QRadar version compatibility. Detects common escalation tool signatures.",
+  "version": "1.2",
   "author": "Security Team",
   "created": "2026-06-27"
 }
