@@ -1,0 +1,37 @@
+{
+  "name": "QRadar-0003 - SQL Injection Attempt Detection",
+  "description": "Detects SQL injection attack patterns in web application logs, WAF events, and IDS/IPS alerts. Looks for known SQLi payloads such as UNION SELECT, OR 1=1, DROP TABLE, and encoded variants commonly used to bypass basic filters.",
+  "type": "EVENT",
+  "enabled": true,
+  "severity": 8,
+  "credibility": 3,
+  "relevance": 5,
+  "category": "Web Application Attack",
+  "mitre": {
+    "tactic": "TA0001",
+    "tactic_name": "Initial Access",
+    "technique": "T1190",
+    "technique_name": "Exploit Public-Facing Application"
+  },
+  "detection": {
+    "log_source_type": "Web Application Firewall (WAF), Apache/Nginx Access Logs, IDS/IPS",
+    "event_name_filter": "SQL Injection|UNION SELECT|1=1|DROP TABLE|sqlmap|information_schema",
+    "aql": "SELECT sourceIP, destinationIP, URL, username, COUNT(*) as injection_attempts FROM events WHERE LOGSOURCETYPENAME(devicetype) ILIKE '%waf%' OR LOGSOURCETYPENAME(devicetype) ILIKE '%apache%' OR LOGSOURCETYPENAME(devicetype) ILIKE '%nginx%' AND (UTF8(payload) ILIKE '%union%select%' OR UTF8(payload) ILIKE '%or%1=1%' OR UTF8(payload) ILIKE '%drop%table%' OR UTF8(payload) ILIKE '%information_schema%' OR UTF8(payload) ILIKE '%benchmark%' OR UTF8(payload) ILIKE '%sleep(%) ' OR UTF8(payload) ILIKE '%waitfor%delay%' OR UTF8(payload) ILIKE '%%27%' OR QIDDESCRIPTION(qid) ILIKE '%sql injection%') GROUP BY sourceIP, destinationIP, URL, username HAVING COUNT(*) >= 3 LAST 10 MINUTES",
+    "threshold": 3,
+    "time_window_seconds": 600,
+    "group_by": "sourceIP"
+  },
+  "response": {
+    "create_offense": true,
+    "offense_name": "SQL Injection Attack from {sourceIP} targeting {URL}",
+    "offense_description": "SQL injection payload patterns detected in HTTP requests. Source IP is probing for database injection vulnerabilities.",
+    "email_notification": true,
+    "syslog_output": true,
+    "offense_type": "Source IP"
+  },
+  "tags": ["sql-injection", "web-attack", "owasp-top10", "application-security", "initial-access"],
+  "notes": "Inspired by SIGMA rule: web_sqli_indicators and OWASP Top 10 A03:2021 - Injection. Tune URL patterns to match your web application structure. Consider correlation with WAF block events.",
+  "version": "1.0",
+  "author": "Security Team",
+  "created": "2026-06-27"
+}
