@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0009 - Impossible Travel and Geo-Anomaly Detection",
-  "description": "Detects compromised credentials by identifying user accounts that authenticate successfully from two geographically distant locations within a time window that is physically impossible to travel between. A user logging in from Baku at 14:00 and from New York at 14:30 cannot have physically traveled there — strong indicator of credential theft, account takeover, or shared credentials.",
+  "description": "Detects compromised credentials by identifying user accounts that authenticate successfully from multiple distinct source IPs within a short time window. Strong indicator of credential theft or account sharing.",
   "type": "EVENT",
   "enabled": true,
   "severity": 8,
@@ -14,27 +14,26 @@
     "technique_name": "Valid Accounts"
   },
   "detection": {
-    "log_source_type": "Active Directory, Azure AD, VPN Logs, Office 365, Okta, Cloud IAM",
+    "log_source_type": "Active Directory, Azure AD, VPN Logs, Office 365, Okta",
     "event_name_filter": "Successful Logon, VPN Authentication, OAuth Token Issuance",
-    "aql": "SELECT username, sourceIP, GEO_COUNTRY(sourceIP) as country, GEO_CITY(sourceIP) as city, startTime, devicetype FROM events WHERE QIDDESCRIPTION(qid) ILIKE '%successful logon%' OR QIDDESCRIPTION(qid) ILIKE '%successful authentication%' OR EventID = 4624 OR EventID = 4768 GROUP BY username HAVING COUNT(DISTINCT GEO_COUNTRY(sourceIP)) >= 2 AND MAX(startTime) - MIN(startTime) < 3600000 LAST 1 HOURS",
-    "threshold_distinct_countries": 2,
+    "aql": "SELECT username, COUNT(DISTINCT sourceIP) as distinct_ips, MIN(starttime) as first_login, MAX(starttime) as last_login FROM events WHERE QIDDESCRIPTION(qid) ILIKE '%successful%' AND (QIDDESCRIPTION(qid) ILIKE '%logon%' OR QIDDESCRIPTION(qid) ILIKE '%authentication%') AND username IS NOT NULL GROUP BY username HAVING COUNT(DISTINCT sourceIP) >= 2 LAST 1 HOURS",
+    "threshold_distinct_ips": 2,
     "max_time_between_logins_seconds": 3600,
-    "min_distance_km": 1000,
-    "group_by": "username",
-    "geolocation_required": true
+    "time_window_seconds": 3600,
+    "group_by": "username"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "Impossible Travel: {username} logged in from {country1} and {country2} within 1 hour",
-    "offense_description": "User account authenticated from two geographically distant locations within a timeframe that makes physical travel impossible. This is a strong indicator of credential compromise or account sharing.",
+    "offense_name": "Suspicious Multi-IP Login: {username} from {distinct_ips} IPs in 1 hour",
+    "offense_description": "User account authenticated from multiple distinct source IPs within 1 hour. Possible credential compromise or account sharing.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Username",
-    "recommended_action": "Force password reset, revoke active sessions, contact user to confirm activity, enable MFA if not already active"
+    "recommended_action": "Force password reset, revoke active sessions, contact user to confirm activity"
   },
-  "tags": ["impossible-travel", "geo-anomaly", "credential-theft", "account-takeover", "identity", "vpn", "azure-ad"],
-  "notes": "Inspired by SIGMA rule: cloud_okta_impossible_travel and Microsoft Defender for Cloud Apps anomaly detection. Requires QRadar GeoIP database to be up to date. Whitelist VPN exit nodes and legitimate cloud service IPs (e.g., Microsoft 365, Google Workspace). Consider integration with UEBA for behavioral baselining.",
-  "version": "1.0",
+  "tags": ["impossible-travel", "multi-ip", "credential-theft", "account-takeover", "identity"],
+  "notes": "Inspired by SIGMA rule: cloud_okta_impossible_travel. Simplified to use DISTINCT sourceIP count instead of GEO functions for broader compatibility.",
+  "version": "1.1",
   "author": "Security Team",
   "created": "2026-06-27"
 }
