@@ -16,7 +16,7 @@
   "detection": {
     "log_source_type": "Network Flows (QFlow), Proxy Logs, DLP",
     "event_name_filter": "Large Data Transfer, Outbound Flow",
-    "aql": "SELECT sourceIP, destinationIP, destinationPort, SUM(bytesOut) as total_bytes_out, COUNT(*) as flow_count FROM flows WHERE bytesOut IS NOT NULL AND destinationPort NOT IN (80, 443, 53) GROUP BY sourceIP, destinationIP, destinationPort HAVING SUM(bytesOut) >= 524288000 LAST 30 MINUTES",
+    "aql": "SELECT sourceIP, destinationIP, destinationPort, SUM(sourcebytes) as total_bytes_out, COUNT(*) as flow_count FROM flows WHERE destinationPort NOT IN (80, 443, 53) GROUP BY sourceIP, destinationIP, destinationPort HAVING SUM(sourcebytes) >= 524288000 LAST 30 MINUTES",
     "threshold_bytes": 524288000,
     "threshold_mb": 500,
     "time_window_seconds": 1800,
@@ -31,8 +31,8 @@
     "offense_type": "Source IP"
   },
   "tags": ["data-exfiltration", "data-theft", "large-transfer", "outbound", "dlp"],
-  "notes": "Inspired by SIGMA rule: net_data_exfiltration_over_non_http. Adjust threshold based on normal business traffic baselines. Removed IsInternal() for compatibility.",
-  "version": "1.1",
+  "notes": "Uses sourcebytes field which exists in standard QRadar QFlow records. Adjust threshold based on baseline traffic.",
+  "version": "1.2",
   "author": "Security Team",
   "created": "2026-06-27"
 }
