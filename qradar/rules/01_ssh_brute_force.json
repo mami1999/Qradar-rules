@@ -1,0 +1,37 @@
+{
+  "name": "QRadar-0001 - SSH Brute Force Login Detection",
+  "description": "Detects multiple failed SSH login attempts from the same source IP within a 5-minute window. This is a common indicator of automated credential stuffing or brute force attacks targeting Linux/Unix systems.",
+  "type": "EVENT",
+  "enabled": true,
+  "severity": 7,
+  "credibility": 4,
+  "relevance": 5,
+  "category": "Authentication",
+  "mitre": {
+    "tactic": "TA0006",
+    "tactic_name": "Credential Access",
+    "technique": "T1110.001",
+    "technique_name": "Brute Force: Password Guessing"
+  },
+  "detection": {
+    "log_source_type": "Linux OS Syslog, OpenSSH",
+    "event_name_filter": "Failed password|Invalid user|authentication failure",
+    "aql": "SELECT sourceIP, destinationIP, username, COUNT(*) as failed_attempts FROM events WHERE LOGSOURCETYPENAME(devicetype) ILIKE '%linux%' OR LOGSOURCETYPENAME(devicetype) ILIKE '%ssh%' AND eventdirection = 'R2L' AND (QIDDESCRIPTION(qid) ILIKE '%failed password%' OR QIDDESCRIPTION(qid) ILIKE '%invalid user%' OR QIDDESCRIPTION(qid) ILIKE '%authentication failure%') GROUP BY sourceIP, destinationIP, username HAVING COUNT(*) >= 10 LAST 5 MINUTES",
+    "threshold": 10,
+    "time_window_seconds": 300,
+    "group_by": "sourceIP"
+  },
+  "response": {
+    "create_offense": true,
+    "offense_name": "SSH Brute Force Attack from {sourceIP} targeting {destinationIP}",
+    "offense_description": "More than 10 failed SSH authentication attempts detected from a single source IP within 5 minutes. Possible brute force or credential stuffing attack.",
+    "email_notification": false,
+    "syslog_output": true,
+    "offense_type": "Source IP"
+  },
+  "tags": ["brute-force", "ssh", "authentication", "credential-access", "linux"],
+  "notes": "Inspired by SIGMA rule: net_ssh_bruteforce. Threshold of 10 can be adjusted per environment. Consider whitelisting internal vulnerability scanners.",
+  "version": "1.0",
+  "author": "Security Team",
+  "created": "2026-06-27"
+}
