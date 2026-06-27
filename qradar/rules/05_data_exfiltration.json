@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0005 - Large-Scale Data Exfiltration Detection",
-  "description": "Detects potential data exfiltration by monitoring for unusually large outbound data transfers from internal hosts to external IP addresses. Triggers when a single host transmits more than 500 MB to an external destination within a 30-minute window, which may indicate data theft via FTP, HTTP/S, or custom protocols.",
+  "description": "Detects potential data exfiltration by monitoring for unusually large outbound data transfers. Triggers when a host transmits more than 500 MB to a destination within a 30-minute window, which may indicate data theft via FTP, HTTP/S, or custom protocols.",
   "type": "FLOW",
   "enabled": true,
   "severity": 9,
@@ -16,27 +16,23 @@
   "detection": {
     "log_source_type": "Network Flows (QFlow), Proxy Logs, DLP",
     "event_name_filter": "Large Data Transfer, Outbound Flow",
-    "aql": "SELECT sourceIP, destinationIP, destinationPort, SUM(bytesOut) as total_bytes_out, COUNT(*) as flow_count FROM flows WHERE IsInternal(sourceIP) = TRUE AND IsInternal(destinationIP) = FALSE AND bytesOut IS NOT NULL AND destinationPort NOT IN (80, 443, 53) GROUP BY sourceIP, destinationIP, destinationPort HAVING SUM(bytesOut) >= 524288000 LAST 30 MINUTES",
+    "aql": "SELECT sourceIP, destinationIP, destinationPort, SUM(bytesOut) as total_bytes_out, COUNT(*) as flow_count FROM flows WHERE bytesOut IS NOT NULL AND destinationPort NOT IN (80, 443, 53) GROUP BY sourceIP, destinationIP, destinationPort HAVING SUM(bytesOut) >= 524288000 LAST 30 MINUTES",
     "threshold_bytes": 524288000,
     "threshold_mb": 500,
     "time_window_seconds": 1800,
-    "group_by": "sourceIP, destinationIP",
-    "additional_filters": {
-      "direction": "outbound",
-      "exclude_trusted_destinations": true
-    }
+    "group_by": "sourceIP, destinationIP"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "Data Exfiltration Detected from {sourceIP} to {destinationIP} — {total_bytes_out} bytes",
-    "offense_description": "An internal host has transferred more than 500 MB of data to an external IP address within 30 minutes. This may indicate unauthorized data exfiltration or a compromised insider.",
+    "offense_name": "Data Exfiltration Detected from {sourceIP} to {destinationIP}",
+    "offense_description": "A host has transferred more than 500 MB of data within 30 minutes on a non-standard port. May indicate unauthorized data exfiltration.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Source IP"
   },
-  "tags": ["data-exfiltration", "data-theft", "large-transfer", "outbound", "dlp", "insider-threat"],
-  "notes": "Inspired by SIGMA rule: net_data_exfiltration_over_non_http. Adjust threshold based on normal business traffic baselines. Whitelist known backup destinations, CDN endpoints, and cloud sync services. Correlate with DLP alerts for higher confidence.",
-  "version": "1.0",
+  "tags": ["data-exfiltration", "data-theft", "large-transfer", "outbound", "dlp"],
+  "notes": "Inspired by SIGMA rule: net_data_exfiltration_over_non_http. Adjust threshold based on normal business traffic baselines. Removed IsInternal() for compatibility.",
+  "version": "1.1",
   "author": "Security Team",
   "created": "2026-06-27"
 }
