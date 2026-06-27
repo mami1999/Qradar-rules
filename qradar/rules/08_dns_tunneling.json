@@ -1,0 +1,45 @@
+{
+  "name": "QRadar-0008 - DNS Tunneling and Covert Channel Detection",
+  "description": "Detects DNS-based covert channels and tunneling used by attackers to exfiltrate data or establish C2 communications through DNS queries. Identifies hosts generating abnormally high volumes of DNS requests, querying unusually long subdomain strings, or querying rare/newly-registered domains — all common indicators of tools like iodine, dnscat2, or DNScat.",
+  "type": "EVENT",
+  "enabled": true,
+  "severity": 8,
+  "credibility": 3,
+  "relevance": 5,
+  "category": "Exfiltration / Command and Control",
+  "mitre": {
+    "tactic": "TA0011",
+    "tactic_name": "Command and Control",
+    "technique": "T1071.004",
+    "technique_name": "Application Layer Protocol: DNS"
+  },
+  "detection": {
+    "log_source_type": "DNS Server Logs, Network Flows (QFlow), Firewall Logs",
+    "event_name_filter": "DNS Query, High-Volume DNS, Long DNS Label",
+    "aql": "SELECT sourceIP, destinationIP, DomainName, QueryType, LENGTH(DomainName) as domain_length, COUNT(*) as query_count FROM events WHERE (destinationPort = 53 OR sourcePort = 53) AND LOGSOURCETYPENAME(devicetype) ILIKE '%dns%' AND QueryType IN ('TXT', 'NULL', 'MX', 'ANY') OR LENGTH(DomainName) > 50 OR (SUBDOMAIN_COUNT(DomainName) > 4) GROUP BY sourceIP, destinationIP, DomainName, QueryType, domain_length HAVING COUNT(*) >= 30 OR LENGTH(DomainName) > 100 LAST 10 MINUTES",
+    "threshold_queries": 30,
+    "max_domain_length": 50,
+    "suspicious_record_types": ["TXT", "NULL", "MX", "ANY"],
+    "time_window_seconds": 600,
+    "group_by": "sourceIP, DomainName",
+    "additional_indicators": {
+      "long_subdomain": true,
+      "high_entropy_labels": true,
+      "txt_record_abuse": true,
+      "high_query_rate": true
+    }
+  },
+  "response": {
+    "create_offense": true,
+    "offense_name": "DNS Tunneling Detected from {sourceIP} — {query_count} queries to {DomainName}",
+    "offense_description": "An internal host is generating anomalous DNS traffic indicative of tunneling. Either the query volume is extremely high, the domain names contain unusually long subdomains, or suspicious record types (TXT/NULL) are being abused for data exfiltration or C2.",
+    "email_notification": true,
+    "syslog_output": true,
+    "offense_type": "Source IP"
+  },
+  "tags": ["dns-tunneling", "covert-channel", "exfiltration", "c2", "dnscat", "iodine", "dns-abuse"],
+  "notes": "Inspired by SIGMA rules: net_susp_dns_txt_query and net_dns_c2_detection. TXT and NULL record queries from internal clients are almost always suspicious. Consider deploying DNS RPZ (Response Policy Zones) for automated blocking. Correlate with entropy analysis of domain labels for higher confidence.",
+  "version": "1.0",
+  "author": "Security Team",
+  "created": "2026-06-27"
+}
