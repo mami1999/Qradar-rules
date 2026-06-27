@@ -1,0 +1,42 @@
+{
+  "name": "QRadar-0004 - Lateral Movement via SMB Admin Shares",
+  "description": "Detects lateral movement activity where a single host initiates SMB (port 445) connections to multiple internal hosts within a short period. This pattern is commonly associated with worm propagation, ransomware spread, and adversary lateral movement using tools like PsExec, WMI, or Pass-the-Hash techniques.",
+  "type": "FLOW",
+  "enabled": true,
+  "severity": 9,
+  "credibility": 4,
+  "relevance": 5,
+  "category": "Lateral Movement",
+  "mitre": {
+    "tactic": "TA0008",
+    "tactic_name": "Lateral Movement",
+    "technique": "T1021.002",
+    "technique_name": "Remote Services: SMB/Windows Admin Shares"
+  },
+  "detection": {
+    "log_source_type": "Network Flows (QFlow), Windows Event Logs, Firewall",
+    "event_name_filter": "SMB Connection, Port 445, Admin Share Access",
+    "aql": "SELECT sourceIP, COUNT(DISTINCT destinationIP) as unique_targets, COUNT(*) as smb_connections FROM flows WHERE destinationPort = 445 AND protocolid = 6 AND IsInternal(destinationIP) = TRUE AND IsInternal(sourceIP) = TRUE GROUP BY sourceIP HAVING COUNT(DISTINCT destinationIP) >= 10 LAST 10 MINUTES",
+    "threshold": 10,
+    "time_window_seconds": 600,
+    "group_by": "sourceIP",
+    "additional_filters": {
+      "protocol": "TCP",
+      "destination_port": 445,
+      "direction": "internal_to_internal"
+    }
+  },
+  "response": {
+    "create_offense": true,
+    "offense_name": "SMB Lateral Movement from {sourceIP} — {unique_targets} hosts targeted",
+    "offense_description": "A single internal host has initiated SMB connections to 10 or more distinct internal hosts within 10 minutes. This is a strong indicator of worm propagation or adversary lateral movement.",
+    "email_notification": true,
+    "syslog_output": true,
+    "offense_type": "Source IP"
+  },
+  "tags": ["lateral-movement", "smb", "psexec", "ransomware", "worm", "windows", "pass-the-hash"],
+  "notes": "Inspired by SIGMA rules: net_lateral_movement_smb and win_remote_service_smb. Whitelist backup systems, patch management servers, and file server replication. Correlate with Windows event 4624 (logon) and 4648 (explicit credential logon).",
+  "version": "1.0",
+  "author": "Security Team",
+  "created": "2026-06-27"
+}
