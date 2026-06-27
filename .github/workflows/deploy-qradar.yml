@@ -1,0 +1,60 @@
+name: Deploy QRadar Detection Rules
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'qradar/rules/**'
+      - 'qradar/deploy.py'
+      - 'qradar/requirements.txt'
+      - '.github/workflows/deploy-qradar.yml'
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy rules to QRadar via Ariel API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        working-directory: qradar
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate JSON syntax of all rule files
+        run: |
+          echo "Checking JSON syntax for all rule files..."
+          for f in qradar/rules/*.json; do
+            echo "  -> $f"
+            python -c "import json; json.load(open('$f'))" || exit 1
+          done
+          echo "All JSON files are valid."
+
+      - name: Deploy rules to QRadar
+        env:
+          QRADAR_HOST: ${{ secrets.QRADAR_HOST }}
+          QRADAR_SEC_TOKEN: ${{ secrets.QRADAR_SEC_TOKEN }}
+        run: |
+          python qradar/deploy.py
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "  QRadar Rule Deployment finished"
+          echo "  Triggered by: ${{ github.actor }}"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Branch: ${{ github.ref_name }}"
+          echo "=========================================="
