@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0004 - Lateral Movement via SMB Admin Shares",
-  "description": "Detects lateral movement activity where a single host initiates SMB (port 445) connections to multiple internal hosts within a short period. This pattern is commonly associated with worm propagation, ransomware spread, and adversary lateral movement using tools like PsExec, WMI, or Pass-the-Hash techniques.",
+  "description": "Detects lateral movement activity where a single host initiates SMB (port 445) connections to multiple distinct hosts within a short period. Commonly associated with worm propagation, ransomware spread, and adversary lateral movement using tools like PsExec, WMI, or Pass-the-Hash techniques.",
   "type": "FLOW",
   "enabled": true,
   "severity": 9,
@@ -15,23 +15,23 @@
   },
   "detection": {
     "log_source_type": "Network Flows (QFlow), Windows Event Logs, Firewall",
-    "event_name_filter": "SMB Connection, Port 445, Admin Share Access",
-    "aql": "SELECT sourceIP, COUNT(DISTINCT destinationIP) as unique_targets, COUNT(*) as smb_connections FROM flows WHERE destinationPort = 445 AND protocolid = 6 GROUP BY sourceIP HAVING COUNT(DISTINCT destinationIP) >= 10 LAST 10 MINUTES",
+    "event_name_filter": "SMB Connection, Port 445",
+    "aql": "SELECT sourceIP, COUNT(DISTINCT destinationIP) as unique_targets, COUNT(*) as smb_connections FROM flows WHERE destinationPort = 445 GROUP BY sourceIP HAVING COUNT(DISTINCT destinationIP) >= 10 LAST 10 MINUTES",
     "threshold": 10,
     "time_window_seconds": 600,
     "group_by": "sourceIP"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "SMB Lateral Movement from {sourceIP} — {unique_targets} hosts targeted",
-    "offense_description": "A single host has initiated SMB connections to 10 or more distinct hosts within 10 minutes. Strong indicator of worm propagation or adversary lateral movement.",
+    "offense_name": "SMB Lateral Movement from {sourceIP}",
+    "offense_description": "A host has initiated SMB connections to 10 or more distinct hosts within 10 minutes. Strong indicator of worm propagation or adversary lateral movement.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Source IP"
   },
   "tags": ["lateral-movement", "smb", "psexec", "ransomware", "worm", "windows"],
-  "notes": "Inspired by SIGMA rules: net_lateral_movement_smb. Whitelist backup systems and file servers. Removed IsInternal() for broader QRadar compatibility.",
-  "version": "1.1",
+  "notes": "Simplified AQL using only universal QRadar fields (sourceIP, destinationIP, destinationPort) for maximum compatibility.",
+  "version": "1.2",
   "author": "Security Team",
   "created": "2026-06-27"
 }
