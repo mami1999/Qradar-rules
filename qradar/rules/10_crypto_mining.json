@@ -1,6 +1,6 @@
 {
   "name": "QRadar-0010 - Cryptocurrency Mining Activity Detection",
-  "description": "Detects unauthorized cryptocurrency mining (cryptojacking) by identifying network connections to known mining pools, Stratum protocol traffic patterns, and DNS queries to mining-related domains. Cryptomining malware consumes resources, increases electricity costs, and often indicates a broader compromise — attackers monetize access to infected systems by deploying miners.",
+  "description": "Detects unauthorized cryptocurrency mining (cryptojacking) by identifying network connections to known mining pool ports. Cryptomining malware consumes resources and often indicates a broader compromise.",
   "type": "FLOW",
   "enabled": true,
   "severity": 7,
@@ -15,26 +15,25 @@
   },
   "detection": {
     "log_source_type": "Network Flows (QFlow), DNS Logs, Proxy Logs, Firewall",
-    "event_name_filter": "Stratum Protocol, Mining Pool Connection, Cryptocurrency DNS Query",
-    "aql": "SELECT sourceIP, destinationIP, destinationPort, DomainName, COUNT(*) as connection_count, SUM(bytesTotal) as total_bytes FROM flows WHERE IsInternal(sourceIP) = TRUE AND (destinationPort IN (3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700) OR DomainName ILIKE '%xmr%' OR DomainName ILIKE '%monero%' OR DomainName ILIKE '%nicehash%' OR DomainName ILIKE '%minexmr%' OR DomainName ILIKE '%moneroocean%' OR DomainName ILIKE '%cryptonight%' OR DomainName ILIKE '%pool.minexmr%' OR DomainName ILIKE '%stratum%' OR DomainName ILIKE '%coinhive%' OR DomainName ILIKE '%cryptoloot%' OR DomainName ILIKE '%webminerpool%') GROUP BY sourceIP, destinationIP, destinationPort, DomainName HAVING COUNT(*) >= 5 LAST 30 MINUTES",
+    "event_name_filter": "Stratum Protocol, Mining Pool Connection",
+    "aql": "SELECT sourceIP, destinationIP, destinationPort, COUNT(*) as connection_count, SUM(bytesTotal) as total_bytes FROM flows WHERE destinationPort IN (3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700) GROUP BY sourceIP, destinationIP, destinationPort HAVING COUNT(*) >= 5 LAST 30 MINUTES",
     "threshold_connections": 5,
     "time_window_seconds": 1800,
     "group_by": "sourceIP",
-    "known_mining_ports": [3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700],
-    "known_mining_keywords": ["xmr", "monero", "nicehash", "minexmr", "stratum", "coinhive", "cryptonight", "cryptoloot"]
+    "known_mining_ports": [3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700]
   },
   "response": {
     "create_offense": true,
-    "offense_name": "Cryptocurrency Mining Activity from {sourceIP} to {DomainName}",
-    "offense_description": "An internal host is communicating with known cryptocurrency mining pools or using the Stratum protocol. This indicates unauthorized cryptojacking, which often follows a system compromise.",
+    "offense_name": "Cryptocurrency Mining Activity from {sourceIP}",
+    "offense_description": "A host is communicating with known cryptocurrency mining pool ports. Indicates unauthorized cryptojacking, which often follows a system compromise.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Source IP",
-    "recommended_action": "Isolate affected host, perform full malware scan, investigate initial access vector, review for additional indicators of compromise"
+    "recommended_action": "Isolate affected host, perform full malware scan, investigate initial access vector"
   },
-  "tags": ["cryptojacking", "crypto-mining", "monero", "stratum", "resource-hijacking", "impact", "malware"],
-  "notes": "Inspired by SIGMA rule: net_crypto_mining_pool_connection. Mining pool list should be updated regularly from threat intelligence feeds. Browser-based miners (Coinhive-style) often communicate over WebSocket on port 443 — consider TLS inspection for full coverage. Correlate with high CPU usage events from endpoint monitoring.",
-  "version": "1.0",
+  "tags": ["cryptojacking", "crypto-mining", "monero", "stratum", "resource-hijacking", "malware"],
+  "notes": "Inspired by SIGMA rule: net_crypto_mining_pool_connection. Simplified — uses port-based detection only. Mining pool ports list should be updated regularly.",
+  "version": "1.1",
   "author": "Security Team",
   "created": "2026-06-27"
 }
