@@ -16,7 +16,7 @@
   "detection": {
     "log_source_type": "Network Flows (QFlow), DNS Logs, Proxy Logs, Firewall",
     "event_name_filter": "Stratum Protocol, Mining Pool Connection",
-    "aql": "SELECT sourceIP, destinationIP, destinationPort, COUNT(*) as connection_count, SUM(bytesTotal) as total_bytes FROM flows WHERE destinationPort IN (3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700) GROUP BY sourceIP, destinationIP, destinationPort HAVING COUNT(*) >= 5 LAST 30 MINUTES",
+    "aql": "SELECT sourceIP, destinationIP, destinationPort, COUNT(*) as connection_count FROM flows WHERE destinationPort IN (3333, 4444, 5555, 7777, 8888, 9999, 14444, 14433, 45700) GROUP BY sourceIP, destinationIP, destinationPort HAVING COUNT(*) >= 5 LAST 30 MINUTES",
     "threshold_connections": 5,
     "time_window_seconds": 1800,
     "group_by": "sourceIP",
@@ -25,15 +25,15 @@
   "response": {
     "create_offense": true,
     "offense_name": "Cryptocurrency Mining Activity from {sourceIP}",
-    "offense_description": "A host is communicating with known cryptocurrency mining pool ports. Indicates unauthorized cryptojacking, which often follows a system compromise.",
+    "offense_description": "A host is communicating with known cryptocurrency mining pool ports. Indicates unauthorized cryptojacking, often following a system compromise.",
     "email_notification": true,
     "syslog_output": true,
     "offense_type": "Source IP",
     "recommended_action": "Isolate affected host, perform full malware scan, investigate initial access vector"
   },
   "tags": ["cryptojacking", "crypto-mining", "monero", "stratum", "resource-hijacking", "malware"],
-  "notes": "Inspired by SIGMA rule: net_crypto_mining_pool_connection. Simplified — uses port-based detection only. Mining pool ports list should be updated regularly.",
-  "version": "1.1",
+  "notes": "Port-based detection using common Stratum protocol ports. Mining pool ports list should be updated regularly.",
+  "version": "1.2",
   "author": "Security Team",
   "created": "2026-06-27"
 }
