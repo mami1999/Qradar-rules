@@ -16,7 +16,7 @@
   "detection": {
     "log_source_type": "Network Flows (QFlow), Windows Event Logs, Firewall",
     "event_name_filter": "SMB Connection, Port 445",
-    "aql": "SELECT sourceIP, COUNT(DISTINCT destinationIP) as unique_targets, COUNT(*) as smb_connections FROM flows WHERE destinationPort = 445 GROUP BY sourceIP HAVING COUNT(DISTINCT destinationIP) >= 10 LAST 10 MINUTES",
+    "aql": "SELECT sourceIP, UNIQUECOUNT(destinationIP) as unique_targets, COUNT(*) as smb_connections FROM flows WHERE destinationPort = 445 GROUP BY sourceIP HAVING UNIQUECOUNT(destinationIP) >= 10 LAST 10 MINUTES",
     "threshold": 10,
     "time_window_seconds": 600,
     "group_by": "sourceIP"
@@ -30,8 +30,8 @@
     "offense_type": "Source IP"
   },
   "tags": ["lateral-movement", "smb", "psexec", "ransomware", "worm", "windows"],
-  "notes": "Simplified AQL using only universal QRadar fields (sourceIP, destinationIP, destinationPort) for maximum compatibility.",
-  "version": "1.2",
+  "notes": "Uses UNIQUECOUNT instead of COUNT(DISTINCT) for QRadar AQL compatibility.",
+  "version": "1.3",
   "author": "Security Team",
   "created": "2026-06-27"
 }
