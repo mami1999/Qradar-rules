@@ -16,22 +16,22 @@
   "detection": {
     "log_source_type": "Network Flows (QFlow), Firewall Logs",
     "event_name_filter": "TCP SYN, UDP Probe, ICMP Probe",
-    "aql": "SELECT sourceIP, destinationIP, COUNT(DISTINCT destinationPort) as unique_ports, COUNT(*) as total_connections FROM flows WHERE sourceIP IS NOT NULL AND destinationPort IS NOT NULL AND (protocolid = 6 OR protocolid = 17) GROUP BY sourceIP, destinationIP HAVING COUNT(DISTINCT destinationPort) >= 50 LAST 60 SECONDS",
+    "aql": "SELECT sourceIP, destinationIP, UNIQUECOUNT(destinationPort) as unique_ports, COUNT(*) as total_connections FROM flows WHERE sourceIP IS NOT NULL AND destinationPort IS NOT NULL GROUP BY sourceIP, destinationIP HAVING UNIQUECOUNT(destinationPort) >= 50 LAST 60 SECONDS",
     "threshold": 50,
     "time_window_seconds": 60,
     "group_by": "sourceIP"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "Port Scan Detected from {sourceIP} — {unique_ports} ports scanned",
-    "offense_description": "A single source IP has probed more than 50 distinct destination ports within 60 seconds. This is indicative of automated network reconnaissance.",
+    "offense_name": "Port Scan Detected from {sourceIP} - {unique_ports} ports scanned",
+    "offense_description": "A single source IP has probed more than 50 distinct destination ports within 60 seconds. Indicative of automated network reconnaissance.",
     "email_notification": false,
     "syslog_output": true,
     "offense_type": "Source IP"
   },
   "tags": ["port-scan", "reconnaissance", "nmap", "network-discovery", "pre-attack"],
-  "notes": "Inspired by SIGMA rule: net_scan_susp_port_scan. Threshold of 50 unique ports is conservative for most enterprise environments. Whitelist authorized vulnerability scanners and asset management tools.",
-  "version": "1.0",
+  "notes": "Uses UNIQUECOUNT instead of COUNT(DISTINCT) for QRadar AQL compatibility.",
+  "version": "1.3",
   "author": "Security Team",
   "created": "2026-06-27"
 }
