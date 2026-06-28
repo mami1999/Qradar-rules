@@ -16,24 +16,22 @@
   "detection": {
     "log_source_type": "Active Directory, Azure AD, VPN Logs, Office 365, Okta",
     "event_name_filter": "Successful Logon, VPN Authentication, OAuth Token Issuance",
-    "aql": "SELECT username, COUNT(DISTINCT sourceIP) as distinct_ips, MIN(starttime) as first_login, MAX(starttime) as last_login FROM events WHERE QIDDESCRIPTION(qid) ILIKE '%successful%' AND (QIDDESCRIPTION(qid) ILIKE '%logon%' OR QIDDESCRIPTION(qid) ILIKE '%authentication%') AND username IS NOT NULL GROUP BY username HAVING COUNT(DISTINCT sourceIP) >= 2 LAST 1 HOURS",
+    "aql": "SELECT username, UNIQUECOUNT(sourceIP) as distinct_ips, MIN(starttime) as first_login, MAX(starttime) as last_login FROM events WHERE QIDDESCRIPTION(qid) ILIKE '%successful%' AND username IS NOT NULL GROUP BY username HAVING UNIQUECOUNT(sourceIP) >= 2 LAST 1 HOURS",
     "threshold_distinct_ips": 2,
-    "max_time_between_logins_seconds": 3600,
     "time_window_seconds": 3600,
     "group_by": "username"
   },
   "response": {
     "create_offense": true,
-    "offense_name": "Suspicious Multi-IP Login: {username} from {distinct_ips} IPs in 1 hour",
-    "offense_description": "User account authenticated from multiple distinct source IPs within 1 hour. Possible credential compromise or account sharing.",
+    "offense_name": "Suspicious Multi-IP Login: {username} from {distinct_ips} IPs",
+    "offense_description": "User account authenticated from multiple distinct source IPs within 1 hour. Possible credential compromise.",
     "email_notification": true,
     "syslog_output": true,
-    "offense_type": "Username",
-    "recommended_action": "Force password reset, revoke active sessions, contact user to confirm activity"
+    "offense_type": "Username"
   },
   "tags": ["impossible-travel", "multi-ip", "credential-theft", "account-takeover", "identity"],
-  "notes": "Inspired by SIGMA rule: cloud_okta_impossible_travel. Simplified to use DISTINCT sourceIP count instead of GEO functions for broader compatibility.",
-  "version": "1.1",
+  "notes": "Uses UNIQUECOUNT instead of COUNT(DISTINCT) for QRadar AQL compatibility.",
+  "version": "1.3",
   "author": "Security Team",
   "created": "2026-06-27"
 }
