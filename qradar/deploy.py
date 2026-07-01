@@ -68,7 +68,7 @@ HEADERS = {
     'Version' : '17.0'
 }
 
-RULES_GLOB = 'qradar/rules/*.json'
+RULES_GLOB = 'qradar/rules/*'
 
 SEVERITY_MAP = {
     range(1, 4):  'LOW',
